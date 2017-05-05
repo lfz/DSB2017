@@ -1,0 +1,4 @@
+*.pyc
+*.ipynb*
+training/.flag*
+prediction*.csv

@@ -1,0 +1,41 @@
+function AddSegmentation(SegmentDataFolder, FolderDelimiter, BatchSize, ParFor_flag, IgnoreExisting_flag)
+if ParFor_flag
+    if isempty(gcp('nocreate'))
+        parpool;
+    end
+else
+    delete(gcp('nocreate'));
+end
+
+fprintf('Lung segmentation...\n');
+FileList = dir(SegmentDataFolder); FileList = FileList(3:end);
+FileList = FileList(~strcmp({FileList.name}, 'DatasetInfo.mat'));
+SampleNum = length(FileList);
+I_Mask = zeros(SampleNum, 1); I_BB = zeros(SampleNum, 1);
+tStart = tic; msgTxt = '';
+warned = false(1, SampleNum);
+if ParFor_flag
+    parfor j = 1:SampleNum
+        [I_Mask(j), I_BB(j), warned(j)] = LungSegmentation(sprintf('%s%s%s', SegmentDataFolder, FolderDelimiter, FileList(j).name), 'IgnoreExisting_flag', IgnoreExisting_flag);
+        tElapse = toc(tStart); tRemain = tElapse / eInd * (SampleNum - eInd);
+        if ~isempty(find(warned(sInd:eInd), 1))
+            msgPre = '';
+        else
+            msgPre = repmat('\b', 1, length(msgTxt) - 1);
+        end
+        msgTxt = sprintf('Progress (%d/%d): %.2f%%%%, %dmin %4.1fsec elapsed, %dmin %4.1fsec to go.\n', ...
+            eInd, SampleNum, eInd / SampleNum * 100, floor(tElapse / 60), mod(tElapse, 60), floor(tRemain / 60), mod(tRemain, 60));
+        fprintf([msgPre, msgTxt]);
+        
+    end
+else
+    for j = 1:SampleNum
+        [I_Mask(j), I_BB(j), warned(j)] = LungSegmentation(sprintf('%s%s%s', SegmentDataFolder, FolderDelimiter, FileList(j).name), 'IgnoreExisting_flag', IgnoreExisting_flag);
+    end
+end
+
+
+fprintf('Average intensity in mask: %.2f\n', mean(I_Mask));
+fprintf('Average intensity in bounding box: %.2f\n', mean(I_BB));
+save(sprintf('%s%s%s', SegmentDataFolder, FolderDelimiter, 'DatasetInfo.mat'), 'I_Mask', 'I_BB','-v7');
+end
