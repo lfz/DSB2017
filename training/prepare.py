@@ -321,7 +321,8 @@ def prepare_luna():
             for f in files:
                 name = f[:-4]
                 id = ids[namelist.index(name)]
-                shutil.move(os.path.join(d,f),os.path.join(luna_data,str(id)+f[-4:]))
+                filename = '0'*(3-len(str(id)))+str(id)
+                shutil.move(os.path.join(d,f),os.path.join(luna_data,filename+f[-4:]))
                 print(os.path.join(luna_data,str(id)+f[-4:]))
 
         files = [f for f in os.listdir(luna_data) if f.endswith('mhd')]

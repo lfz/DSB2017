@@ -10,14 +10,17 @@ from torch.utils.data import Dataset
 from scipy.ndimage.interpolation import rotate
 import numpy as np
 import os
+import sys
+sys.path.append('../')
+from config_training import config as config_training
 
 config = {}
 config['topk'] = 5
 config['resample'] = None
-config['datadir'] = '/work/DataBowl3/stage1/preprocess_1_3/'
+config['datadir'] = config_training['preprocess_result_path']
 config['preload_train'] = True
-config['bboxpath'] = '../cpliangming/results/res18_mylabel/bbox/'
-config['labelfile'] = 'full_label.csv'
+config['bboxpath'] = config_training['bbox_path']
+config['labelfile'] = './full_label.csv'
 config['preload_val'] = True
 
 config['padmask'] = False
