@@ -219,6 +219,9 @@ def savenpy_luna(id,annos,filelist,luna_segment,luna_data,savepath):
         pad_value = 170
 
         sliceim,origin,spacing,isflip = load_itk_image(os.path.join(luna_data,name+'.mhd'))
+        if isflip:
+            sliceim = sliceim[:,::-1,::-1]
+            print('flip!')
         sliceim = lumTrans(sliceim)
         sliceim = sliceim*dilatedMask+pad_value*(1-dilatedMask).astype('uint8')
         bones = (sliceim*extramask)>bone_thresh
