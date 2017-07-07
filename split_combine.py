@@ -60,7 +60,7 @@ class SplitComb():
             stride = self.stride
         if margin == None:
             margin = self.margin
-        if nzhw==None:
+        if nzhw is None:
             nz = self.nz
             nh = self.nh
             nw = self.nw
