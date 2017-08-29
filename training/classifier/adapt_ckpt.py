@@ -1,7 +1,8 @@
-import torch
-import numpy as np
 import argparse
 from importlib import import_module
+
+import torch
+
 parser = argparse.ArgumentParser(description='network surgery')
 parser.add_argument('--model1', '-m1', metavar='MODEL', default='base',
                     help='model')
@@ -24,6 +25,6 @@ config2 = casemodel.config
 args.lr_stage2 = config2['lr_stage']
 args.lr_preset2 = config2['lr']
 topk = config2['topk']
-case_net = casemodel.CaseNet(topk = topk,nodulenet=nod_net)
+case_net = casemodel.CaseNet(topk=topk, nodulenet=nod_net)
 new_state_dict = case_net.state_dict()
-torch.save({'state_dict': new_state_dict,'epoch':0},'results/start.ckpt')
+torch.save({'state_dict': new_state_dict, 'epoch': 0}, 'results/start.ckpt')

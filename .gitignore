@@ -2,3 +2,4 @@
 *.ipynb*
 training/.flag*
 prediction*.csv
+.idea

@@ -1,25 +1,20 @@
 import os
 import time
-import numpy as np
 
-import torch
+import numpy as np
 from torch import nn
-from torch.nn import DataParallel
-from torch.backends import cudnn
-from torch.utils.data import DataLoader
-from torch import optim
 from torch.autograd import Variable
 
-from layers import acc
 
-def get_lr(epoch,args):
-    assert epoch<=args.lr_stage[-1]
-    if args.lr==None:
-        lrstage = np.sum(epoch>args.lr_stage)
+def get_lr(epoch, args):
+    assert epoch <= args.lr_stage[-1]
+    if args.lr == None:
+        lrstage = np.sum(epoch > args.lr_stage)
         lr = args.lr_preset[lrstage]
     else:
         lr = args.lr
     return lr
+
 
 def train_nodulenet(data_loader, net, loss, epoch, optimizer, args):
     start_time = time.time()
@@ -29,24 +24,24 @@ def train_nodulenet(data_loader, net, loss, epoch, optimizer, args):
             if isinstance(m, nn.BatchNorm3d):
                 m.eval()
 
-    lr = get_lr(epoch,args)
+    lr = get_lr(epoch, args)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
     metrics = []
     for i, (data, target, coord) in enumerate(data_loader):
         if args.debug:
-            if i >4:
+            if i > 4:
                 break
-        data = Variable(data.cuda(async = True))
-        target = Variable(target.cuda(async = True))
-        coord = Variable(coord.cuda(async = True))
+        data = Variable(data.cuda(async=True))
+        target = Variable(target.cuda(async=True))
+        coord = Variable(coord.cuda(async=True))
 
-        _,output = net(data, coord)
+        _, output = net(data, coord)
         loss_output = loss(output, target)
         optimizer.zero_grad()
         loss_output[0].backward()
-        #torch.nn.utils.clip_grad_norm(net.parameters(), 1)
+        # torch.nn.utils.clip_grad_norm(net.parameters(), 1)
         optimizer.step()
 
         loss_output[0] = loss_output[0].data[0]
@@ -71,22 +66,23 @@ def train_nodulenet(data_loader, net, loss, epoch, optimizer, args):
         np.mean(metrics[:, 5])))
     print
 
+
 def validate_nodulenet(data_loader, net, loss):
     start_time = time.time()
-    
+
     net.eval()
 
     metrics = []
     for i, (data, target, coord) in enumerate(data_loader):
-        data = Variable(data.cuda(async = True), volatile = True)
-        target = Variable(target.cuda(async = True), volatile = True)
-        coord = Variable(coord.cuda(async = True), volatile = True)
+        data = Variable(data.cuda(async=True), volatile=True)
+        target = Variable(target.cuda(async=True), volatile=True)
+        coord = Variable(coord.cuda(async=True), volatile=True)
 
-        _,output = net(data, coord)
-        loss_output = loss(output, target, train = False)
+        _, output = net(data, coord)
+        loss_output = loss(output, target, train=False)
 
         loss_output[0] = loss_output[0].data[0]
-        metrics.append(loss_output)    
+        metrics.append(loss_output)
     end_time = time.time()
 
     metrics = np.asarray(metrics, np.float32)
@@ -106,9 +102,10 @@ def validate_nodulenet(data_loader, net, loss):
     print
     print
 
+
 def test_nodulenet(data_loader, net, get_pbb, save_dir, config, n_per_run):
     start_time = time.time()
-    save_dir = os.path.join(save_dir,'bbox')
+    save_dir = os.path.join(save_dir, 'bbox')
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     net.eval()
@@ -127,30 +124,29 @@ def test_nodulenet(data_loader, net, get_pbb, save_dir, config, n_per_run):
             if config['output_feature']:
                 isfeat = True
         print(data.size())
-        splitlist = range(0,len(data)+1,n_per_run)
-        if splitlist[-1]!=len(data):
+        splitlist = range(0, len(data) + 1, n_per_run)
+        if splitlist[-1] != len(data):
             splitlist.append(len(data))
         outputlist = []
         featurelist = []
 
-        for i in range(len(splitlist)-1):
-            input = Variable(data[splitlist[i]:splitlist[i+1]], volatile = True).cuda()
-            inputcoord = Variable(coord[splitlist[i]:splitlist[i+1]], volatile = True).cuda()
-            _,output = net(input,inputcoord)
+        for i in range(len(splitlist) - 1):
+            input = Variable(data[splitlist[i]:splitlist[i + 1]], volatile=True).cuda()
+            inputcoord = Variable(coord[splitlist[i]:splitlist[i + 1]], volatile=True).cuda()
+            _, output = net(input, inputcoord)
             outputlist.append(output.data.cpu().numpy())
-        output = np.concatenate(outputlist,0)
-        output = split_comber.combine(output,nzhw=nzhw)
+        output = np.concatenate(outputlist, 0)
+        output = split_comber.combine(output, nzhw=nzhw)
         thresh = -3
-        pbb,mask = get_pbb(output,thresh,ismask=True)
-        #tp,fp,fn,_ = acc(pbb,lbb,0,0.1,0.1)
-        #print([len(tp),len(fp),len(fn)])
-        print([i_name,name])
+        pbb, mask = get_pbb(output, thresh, ismask=True)
+        # tp,fp,fn,_ = acc(pbb,lbb,0,0.1,0.1)
+        # print([len(tp),len(fp),len(fn)])
+        print([i_name, name])
         e = time.time()
-        np.save(os.path.join(save_dir, name+'_pbb.npy'), pbb)
-        np.save(os.path.join(save_dir, name+'_lbb.npy'), lbb)
+        np.save(os.path.join(save_dir, name + '_pbb.npy'), pbb)
+        np.save(os.path.join(save_dir, name + '_lbb.npy'), lbb)
     np.save(os.path.join(save_dir, 'namelist.npy'), namelist)
     end_time = time.time()
-
 
     print('elapsed time is %3.2f seconds' % (end_time - start_time))
     print
