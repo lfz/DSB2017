@@ -1,25 +1,17 @@
 import argparse
-import os
-import time
-import numpy as np
-from importlib import import_module
 import shutil
-import sys
-from split_combine import SplitComb
+import time
+from importlib import import_module
 
 import torch
-from torch.nn import DataParallel
 from torch.backends import cudnn
+from torch.nn import DataParallel
 from torch.utils.data import DataLoader
-from torch import optim
-from torch.autograd import Variable
-
-from layers import acc
-from trainval_detector import *
 from trainval_classifier import *
-from data_detector import DataBowl3Detector
-from data_classifier import DataBowl3Classifier
+from trainval_detector import *
 
+from data_classifier import DataBowl3Classifier
+from data_detector import DataBowl3Detector
 from utils import *
 
 parser = argparse.ArgumentParser(description='PyTorch DataBowl3 Detector')
@@ -66,14 +58,13 @@ parser.add_argument('--debug', default=0, type=int, metavar='TEST',
 parser.add_argument('--freeze_batchnorm', default=0, type=int, metavar='TEST',
                     help='freeze the batchnorm when training')
 
+
 def main():
     global args
     args = parser.parse_args()
-    
-    
+
     torch.manual_seed(0)
-    
-    
+
     ##################################
 
     nodmodel = import_module(args.model1)
@@ -81,32 +72,30 @@ def main():
     args.lr_stage = config1['lr_stage']
     args.lr_preset = config1['lr']
 
-    
     save_dir = args.save_dir
 
-    
     ##################################
-    
+
     casemodel = import_module(args.model2)
-    
+
     config2 = casemodel.config
     args.lr_stage2 = config2['lr_stage']
     args.lr_preset2 = config2['lr']
     topk = config2['topk']
-    case_net = casemodel.CaseNet(topk = topk,nodulenet=nod_net)
+    case_net = casemodel.CaseNet(topk=topk, nodulenet=nod_net)
 
     args.miss_ratio = config2['miss_ratio']
     args.miss_thresh = config2['miss_thresh']
     if args.debug:
         args.save_dir = 'debug'
-    
+
     ###################################
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
     ################################
     start_epoch = args.start_epoch
     if args.resume:
@@ -116,7 +105,7 @@ def main():
         if not save_dir:
             save_dir = checkpoint['save_dir']
         else:
-            save_dir = os.path.join('results',save_dir)
+            save_dir = os.path.join('results', save_dir)
         case_net.load_state_dict(checkpoint['state_dict'])
     else:
         if start_epoch == 0:
@@ -125,7 +114,7 @@ def main():
             exp_id = time.strftime('%Y%m%d-%H%M%S', time.localtime())
             save_dir = os.path.join('results', args.model1 + '-' + exp_id)
         else:
-            save_dir = os.path.join('results',save_dir)
+            save_dir = os.path.join('results', save_dir)
     if args.epochs == None:
         end_epoch = args.lr_stage2[-1]
     else:
@@ -133,15 +122,15 @@ def main():
     ################################
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    logfile = os.path.join(save_dir,'log')
-    if args.test1!=1 and args.test2!=1 :
+    logfile = os.path.join(save_dir, 'log')
+    if args.test1 != 1 and args.test2 != 1:
         sys.stdout = Logger(logfile)
         pyfiles = [f for f in os.listdir('./') if f.endswith('.py')]
         for f in pyfiles:
-            shutil.copy(f,os.path.join(save_dir,f))
+            shutil.copy(f, os.path.join(save_dir, f))
     ################################
     torch.cuda.set_device(0)
-    #nod_net = nod_net.cuda()
+    # nod_net = nod_net.cuda()
     case_net = case_net.cuda()
     loss = loss.cuda()
     cudnn.benchmark = True
@@ -153,32 +142,31 @@ def main():
 
     if args.test1 == 1:
         testsplit = np.load('full.npy')
-        dataset = DataBowl3Classifier(testsplit, config2, phase = 'test')
-        predlist = test_casenet(case_net,dataset).T
-        anstable = np.concatenate([[testsplit],predlist],0).T
+        dataset = DataBowl3Classifier(testsplit, config2, phase='test')
+        predlist = test_casenet(case_net, dataset).T
+        anstable = np.concatenate([[testsplit], predlist], 0).T
         df = pandas.DataFrame(anstable)
-        df.columns={'id','cancer'}
-        df.to_csv('allstage1.csv',index=False)
+        df.columns = {'id', 'cancer'}
+        df.to_csv('allstage1.csv', index=False)
         return
 
-    if args.test2 ==1:
-
+    if args.test2 == 1:
         testsplit = np.load('test.npy')
-        dataset = DataBowl3Classifier(testsplit, config2, phase = 'test')
-        predlist = test_casenet(case_net,dataset).T
-        anstable = np.concatenate([[testsplit],predlist],0).T
+        dataset = DataBowl3Classifier(testsplit, config2, phase='test')
+        predlist = test_casenet(case_net, dataset).T
+        anstable = np.concatenate([[testsplit], predlist], 0).T
         df = pandas.DataFrame(anstable)
-        df.columns={'id','cancer'}
-        df.to_csv('quick',index=False)
+        df.columns = {'id', 'cancer'}
+        df.to_csv('quick', index=False)
         return
     if args.test3 == 1:
         testsplit3 = np.load('stage2.npy')
-        dataset = DataBowl3Classifier(testsplit3,config2,phase = 'test')
-        predlist = test_casenet(case_net,dataset).T
-        anstable = np.concatenate([[testsplit3],predlist],0).T
+        dataset = DataBowl3Classifier(testsplit3, config2, phase='test')
+        predlist = test_casenet(case_net, dataset).T
+        anstable = np.concatenate([[testsplit3], predlist], 0).T
         df = pandas.DataFrame(anstable)
-        df.columns={'id','cancer'}
-        df.to_csv('stage2_ans.csv',index=False)
+        df.columns = {'id', 'cancer'}
+        df.to_csv('stage2_ans.csv', index=False)
         return
     print(save_dir)
     print(args.save_freq)
@@ -186,51 +174,51 @@ def main():
     valsplit = np.load('valsplit.npy')
     testsplit = np.load('test.npy')
 
-    dataset = DataBowl3Detector(trainsplit,config1,phase = 'train')
-    train_loader_nod = DataLoader(dataset,batch_size = args.batch_size,
-        shuffle = True,num_workers = args.workers,pin_memory=True)
+    dataset = DataBowl3Detector(trainsplit, config1, phase='train')
+    train_loader_nod = DataLoader(dataset, batch_size=args.batch_size,
+                                  shuffle=True, num_workers=args.workers, pin_memory=True)
 
-    dataset = DataBowl3Detector(valsplit,config1,phase = 'val')
-    val_loader_nod = DataLoader(dataset,batch_size = args.batch_size,
-        shuffle = False,num_workers = args.workers,pin_memory=True)
+    dataset = DataBowl3Detector(valsplit, config1, phase='val')
+    val_loader_nod = DataLoader(dataset, batch_size=args.batch_size,
+                                shuffle=False, num_workers=args.workers, pin_memory=True)
 
     optimizer = torch.optim.SGD(nod_net.parameters(),
-        args.lr,momentum = 0.9,weight_decay = args.weight_decay)
-    
-    trainsplit = np.load('full.npy')
-    dataset = DataBowl3Classifier(trainsplit,config2,phase = 'train')
-    train_loader_case = DataLoader(dataset,batch_size = args.batch_size2,
-        shuffle = True,num_workers = args.workers,pin_memory=True)
-    
-    dataset = DataBowl3Classifier(valsplit,config2,phase = 'val')
-    val_loader_case = DataLoader(dataset,batch_size = max([args.batch_size2,1]),
-        shuffle = False,num_workers = args.workers,pin_memory=True)
+                                args.lr, momentum=0.9, weight_decay=args.weight_decay)
 
-    dataset = DataBowl3Classifier(trainsplit,config2,phase = 'val')
-    all_loader_case = DataLoader(dataset,batch_size = max([args.batch_size2,1]),
-        shuffle = False,num_workers = args.workers,pin_memory=True)
+    trainsplit = np.load('full.npy')
+    dataset = DataBowl3Classifier(trainsplit, config2, phase='train')
+    train_loader_case = DataLoader(dataset, batch_size=args.batch_size2,
+                                   shuffle=True, num_workers=args.workers, pin_memory=True)
+
+    dataset = DataBowl3Classifier(valsplit, config2, phase='val')
+    val_loader_case = DataLoader(dataset, batch_size=max([args.batch_size2, 1]),
+                                 shuffle=False, num_workers=args.workers, pin_memory=True)
+
+    dataset = DataBowl3Classifier(trainsplit, config2, phase='val')
+    all_loader_case = DataLoader(dataset, batch_size=max([args.batch_size2, 1]),
+                                 shuffle=False, num_workers=args.workers, pin_memory=True)
 
     optimizer2 = torch.optim.SGD(case_net.parameters(),
-        args.lr,momentum = 0.9,weight_decay = args.weight_decay)
-    
+                                 args.lr, momentum=0.9, weight_decay=args.weight_decay)
+
     for epoch in range(start_epoch, end_epoch + 1):
-        if epoch ==start_epoch:
+        if epoch == start_epoch:
             lr = args.lr
             debug = args.debug
             args.lr = 0.0
             args.debug = True
-            train_casenet(epoch,case_net,train_loader_case,optimizer2,args)
+            train_casenet(epoch, case_net, train_loader_case, optimizer2, args)
             args.lr = lr
             args.debug = debug
-        if epoch<args.lr_stage[-1]:
+        if epoch < args.lr_stage[-1]:
             train_nodulenet(train_loader_nod, nod_net, loss, epoch, optimizer, args)
             validate_nodulenet(val_loader_nod, nod_net, loss)
-        if epoch>config2['startepoch']:
-            train_casenet(epoch,case_net,train_loader_case,optimizer2,args)
-            val_casenet(epoch,case_net,val_loader_case,args)
-            val_casenet(epoch,case_net,all_loader_case,args)
+        if epoch > config2['startepoch']:
+            train_casenet(epoch, case_net, train_loader_case, optimizer2, args)
+            val_casenet(epoch, case_net, val_loader_case, args)
+            val_casenet(epoch, case_net, all_loader_case, args)
 
-        if epoch % args.save_freq == 0:            
+        if epoch % args.save_freq == 0:
             state_dict = case_net.module.state_dict()
             for key in state_dict.keys():
                 state_dict[key] = state_dict[key].cpu()
@@ -241,6 +229,7 @@ def main():
                 'state_dict': state_dict,
                 'args': args},
                 os.path.join(save_dir, '%03d.ckpt' % epoch))
+
+
 if __name__ == '__main__':
     main()
-
