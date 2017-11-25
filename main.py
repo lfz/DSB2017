@@ -103,7 +103,5 @@ config2['datadir'] = prep_result_path
 
 dataset = DataBowl3Classifier(testsplit, config2, phase = 'test')
 predlist = test_casenet(casenet,dataset).T
-anstable = np.concatenate([[testsplit],predlist],0).T
-df = pandas.DataFrame(anstable)
-df.columns={'id','cancer'}
+df = pandas.DataFrame({'id':testsplit, 'cancer':predlist})
 df.to_csv(filename,index=False)
