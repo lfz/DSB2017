@@ -247,18 +247,43 @@ class Crop(object):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 crop = zoom(crop,[1,scale,scale,scale],order=1)
-            newpad = self.crop_size[0]-crop.shape[1:][0]
-            if newpad<0:
-                crop = crop[:,:-newpad,:-newpad,:-newpad]
-            elif newpad>0:
-                pad2 = [[0,0],[0,newpad],[0,newpad],[0,newpad]]
-                crop = np.pad(crop,pad2,'constant',constant_values =self.pad_value)
-            for i in range(4):
-                target[i] = target[i]*scale
+            crop = self.resize_crop(crop)
+            for i in range(6):
+                target[i] = target[i] * scale
             for i in range(len(bboxes)):
-                for j in range(4):
-                    bboxes[i][j] = bboxes[i][j]*scale
+                for j in range(6):
+                    bboxes[i][j] = bboxes[i][j] * scale
         return crop, target, bboxes, coord
+
+    def resize_crop(self, crop):
+        newpad = self.crop_size[0] - crop.shape[1:][0]
+        if newpad < 0:
+            crop = crop[:, :newpad, :, :]
+        elif newpad > 0:
+            pad = [[0, 0], [0, newpad], [0, 0], [0, 0]]
+            # pad = (0, 0, 0, 0, 0, newpad)
+            # crop = F.pad(crop, pad, 'constant', self.pad_value)
+            crop = np.pad(crop, pad, 'constant', constant_values=self.pad_value)
+
+        newpad1 = self.crop_size[1] - crop.shape[1:][1]
+        if newpad1 < 0:
+            crop = crop[:, :, :newpad1, :]
+        elif newpad1 > 0:
+            pad1 = [[0, 0], [0, 0], [0, newpad1], [0, 0]]
+            # pad1 = (0, 0, 0, newpad1, 0, 0)
+            # crop = F.pad(crop, pad1, 'constant', self.pad_value)
+            crop = np.pad(crop, pad1, 'constant', constant_values=self.pad_value)
+
+        newpad2 = self.crop_size[2] - crop.shape[1:][2]
+        if newpad2 < 0:
+            crop = crop[:, :, :, :newpad2]
+        elif newpad2 > 0:
+            pad2 = [[0, 0], [0, 0], [0, 0], [0, newpad2]]
+            # pad2 = (0, newpad2, 0, 0, 0, 0)
+            # crop = F.pad(crop, pad2, 'constant', self.pad_value)
+            crop = np.pad(crop, pad2, 'constant', constant_values=self.pad_value)
+
+        return crop
     
 class LabelMapping(object):
     def __init__(self, config, phase):
