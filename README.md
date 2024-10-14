@@ -63,7 +63,7 @@ The training involves four steps
     
     To prevent overfitting, the network is alternatively trained on detection task and classification task.
 
-The network archetecture is shown below
+The network architecture is shown below
 
 <img src="./images/nodulenet.png" width=50%>
 
